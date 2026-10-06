@@ -1,3 +1,8 @@
+#if DSIXLPLUS_FOUNDATION
+#include "dsi_xl_plus/xlplus_runtime.h"
+#include "dsi_xl_plus/xlplus_settings_page.h"
+#endif
+
 #include <nds.h>
 #include <nds/arm9/dldi.h>
 #include <cstdio>
@@ -1029,6 +1034,9 @@ void customSleep() {
 int settingsMode(void)
 {
 //---------------------------------------------------------------------------------
+#if DSIXLPLUS_FOUNDATION
+	dsi_xl_plus::initialize();
+#endif
 	ms().loadSettings();
 	gs().loadSettings();
 	bs().loadSettings();
@@ -1711,6 +1719,9 @@ int settingsMode(void)
 	if (gamesPageVisible)
 		gui().addPage(gamesPage);
 	gui().addPage(miscPage);
+#if DSIXLPLUS_FOUNDATION
+	dsi_xl_plus::addSettingsPage();
+#endif
 
 	/*if (isDSiMode() && ms().consoleModel >= 2) {
 		gui().addPage(twlfirmPage);
@@ -1726,6 +1737,9 @@ int settingsMode(void)
 		}
 
 		gui().draw();
+#if DSIXLPLUS_FOUNDATION
+		dsi_xl_plus::settingsCheckpoint(); // Runs at most once, after the normal UI draws.
+#endif
 		do
 		{
 			if (currentMacroMode) {

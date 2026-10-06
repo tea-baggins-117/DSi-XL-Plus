@@ -1,3 +1,7 @@
+#if DSIXLPLUS_FOUNDATION
+#include "dsi_xl_plus/xlplus_runtime.h"
+#endif
+
 #include <nds.h>
 #include <nds/arm9/dldi.h>
 #include "fat_ext.h"
@@ -2186,6 +2190,9 @@ void regionSelect(void) {
 int titleMode(void)
 {
 //---------------------------------------------------------------------------------
+#if DSIXLPLUS_FOUNDATION
+	dsi_xl_plus::initialize();
+#endif
 	keysSetRepeat(25, 5);
 
 	*(u32*)0x02FFFDFC = 0; // Reset TWLCFG location

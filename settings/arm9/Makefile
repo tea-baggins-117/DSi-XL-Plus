@@ -58,6 +58,8 @@ CFLAGS	:=	-g -Wall -O2 \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM9 -DNO_PICO_LAUNCHER -DSTANDALONE -DCURRENT_SCREEN_MODE=$(CURRENT_SCREEN_MODE)
+# DSi XL+ foundation (default off).
+include $(abspath $(dir $(firstword $(MAKEFILE_LIST)))/../../dsi-xl-plus/build/xlplus.mk)
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++17
 
 ASFLAGS	:=	-g $(ARCH) $(INCLUDE) -flto

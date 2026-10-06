@@ -1,3 +1,7 @@
+#if DSIXLPLUS_FOUNDATION
+#include "dsi_xl_plus/xlplus_runtime.h"
+#endif
+
 #include <nds.h>
 #include <nds/arm9/dldi.h>
 #include "io_m3_common.h"
@@ -1249,6 +1253,9 @@ static void launchWithConfig(const CustomLauncher *launcher, const std::string &
 }
 
 int dsiMenuTheme(void) {
+#if DSIXLPLUS_FOUNDATION
+	dsi_xl_plus::initialize();
+#endif
 	ms().loadSettings();
 	bs().loadSettings();
 	logInit();
