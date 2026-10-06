@@ -2,12 +2,12 @@ name: Build TWiLight Menu++ Nightly
 
 on:
   push:
-    branches: ["*"]
+    branches: ["*", "dsi-xl-plus/**"]
     paths-ignore:
       - 'README.md'
       - '.github/ISSUE_TEMPLATE/*'
   pull_request:
-    branches: ["*"]
+    branches: ["*", "dsi-xl-plus/**"]
     paths-ignore:
       - 'README.md'
       - '.github/ISSUE_TEMPLATE/*'

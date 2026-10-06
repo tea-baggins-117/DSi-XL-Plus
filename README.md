@@ -1,3 +1,5 @@
+> **DSi XL+ development fork** — based on TWiLight Menu++. Phase 1 foundation is opt-in and hardware testing is pending. See [DSi XL+ documentation](dsi-xl-plus/docs/README.md) and [upstream integration](UPSTREAM_INTEGRATION.md).
+
 <p align="center">
  <img src="https://github.com/DS-Homebrew/TWiLightMenu/blob/master/logo.png"><br>
   <a href="https://gbatemp.net/threads/ds-i-3ds-twilight-menu-gui-for-ds-i-games-and-ds-i-menu-replacement.472200/">
