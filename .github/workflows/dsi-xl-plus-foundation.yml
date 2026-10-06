@@ -1,0 +1,107 @@
+name: DSi XL+ foundation checks
+
+on:
+  push:
+    branches: ["dsi-xl-plus/**"]
+  pull_request:
+    branches: ["dsi-xl-plus/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Bounded config and recovery fault tests
+        run: bash dsi-xl-plus/tests/run-host-tests.sh
+      - name: Address and undefined-behavior sanitizers
+        env:
+          SANITIZE: "1"
+        run: bash dsi-xl-plus/tests/run-host-tests.sh
+
+  package:
+    needs: host-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, off, on]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Install host extraction tool
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      - name: Clean pinned Docker build
+        env:
+          XLPLUS_OUTPUT_PARENT: ${{ runner.temp }}/xlplus-builds
+        run: bash dsi-xl-plus/tools/run-foundation-checks.sh '${{ matrix.variant }}'
+      - name: Preserve build evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: foundation-${{ matrix.variant }}-evidence
+          path: |
+            ${{ runner.temp }}/xlplus-builds/*/evidence/**
+            ${{ runner.temp }}/xlplus-builds/*/${{ matrix.variant }}/evidence/**
+          if-no-files-found: warn
+      - name: Preserve compiled package
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: foundation-${{ matrix.variant }}-package
+          path: ${{ runner.temp }}/xlplus-builds/*/${{ matrix.variant }}/TWiLightMenu-*.tar.gz
+
+  compare:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: foundation-*-evidence
+          path: evidence
+      - name: Compare package inventory, warnings and ELF sizes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+          root = Path('evidence')
+          reports = {}
+          def warnings(path):
+              messages = set()
+              for line in path.read_text(errors='replace').splitlines():
+                  line = re.sub(r'\x1b\[[0-9;]*m', '', line)
+                  if 'warning:' in line.lower():
+                      message = re.split('warning:', line, flags=re.I, maxsplit=1)[1].strip()
+                      messages.add(message)
+              return messages
+          for variant in ('baseline', 'off', 'on'):
+              folder = root/f'foundation-{variant}-evidence'
+              manifests = list(folder.rglob('package-files.json'))
+              assert len(manifests) == 1, (variant, manifests)
+              directory = manifests[0].parent
+              assert (directory/'build.exit-code').read_text().strip() == '0'
+              reports[variant] = {'files': json.loads(manifests[0].read_text()), 'warnings': warnings(directory/'build.log'), 'sizes': (directory/'elf-sizes.txt').read_text()}
+          lines = ['# Foundation build comparison', '', 'Hardware smoke testing: PENDING.', '']
+          baseline = reports['baseline']
+          for variant in ('off', 'on'):
+              current = reports[variant]
+              missing = sorted(set(baseline['files']) - set(current['files']))
+              added = sorted(set(current['files']) - set(baseline['files']))
+              changed = sorted(p for p in baseline['files'].keys() & current['files'].keys() if baseline['files'][p] != current['files'][p])
+              new_warnings = sorted(current['warnings'] - baseline['warnings'])
+              lines += [f'## {variant}', f'Files: {len(current["files"])}; missing: {len(missing)}; added: {len(added)}; changed bytes: {len(changed)}.', '', 'Changed outputs:', *[f'- {p}' for p in changed], '', 'New warning messages:', *[f'- {w}' for w in new_warnings], '', '```text', current['sizes'], '```', '']
+              assert not missing and not added, (missing, added)
+          lines += ['## Baseline ELF sizes', '```text', baseline['sizes'], '```', '', 'Content changes include fork/version metadata; byte equality is not asserted. Review new warnings before acceptance.']
+          Path('foundation-comparison.md').write_text('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: foundation-comparison
+          path: foundation-comparison.md
