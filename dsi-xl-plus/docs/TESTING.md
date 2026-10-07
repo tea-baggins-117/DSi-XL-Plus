@@ -6,10 +6,10 @@ Local host verification on 6 October 2026 passed with GNU C++ 13.3, C++17, no RT
 
 - Config syntax/limits/defaults, one-byte reads, every read/close error and 2,000 deterministic arbitrary byte inputs.
 - Missing-active disabled behavior, active/LKG/predecessor/default ordering, unsupported-schema preservation, runtime gates and checkpoint idempotence.
-- All 70 operation-failure points and seven mutation/interruption boundaries in a normal LKG rotation; partial and zero writes, corruption, read-only storage, occupied stage, full quarantine pools, invalid/newer LKG and predecessor-only recovery.
+- All operation-failure points and mutation/interruption boundaries in normal LKG rotation (70/7), first LKG creation (51/5), predecessor-only recovery (51/5), and invalid-LKG quarantine/promotion (66/6); partial and zero writes, corruption, read-only storage, occupied stage, full quarantine pools, invalid/newer LKG and predecessor-only recovery.
 - Actual stdio/POSIX backend in a disposable host directory: missing root produces no files, exclusive staging, verified promotion, unchanged zero-write path and forbidden target operations.
 - Compile gate on and off for recovery policy.
-- AddressSanitizer and UndefinedBehaviorSanitizer. The local environment blocks LeakSanitizer process inspection, so that local run used `ASAN_OPTIONS=detect_leaks=0`; CI attempts the standard sanitizer configuration. Fake-storage handle counts independently check all opened handles are closed.
+- AddressSanitizer and UndefinedBehaviorSanitizer. The local environment blocks LeakSanitizer process inspection, so that local run used `ASAN_OPTIONS=detect_leaks=0`; The CI host job also passed the standard sanitizer configuration, with LeakSanitizer enabled. Fake-storage handle counts independently check all opened handles are closed.
 
 These are deterministic filesystem-operation simulations, not proof of FAT sector/power-loss behavior. The real adapter host test is not an ARM or libfat runtime test.
 

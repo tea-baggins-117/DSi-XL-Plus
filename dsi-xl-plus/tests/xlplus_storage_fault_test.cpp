@@ -23,6 +23,45 @@ void survivingKnownGood(FakeStorage& s) {
     assert(!optionalFeaturesEnabled(state, true));
     assert(!s.openHandles);
 }
+void promotionBoundaryCases(const char* name, const FakeStorage& initial, bool hasPrevious, bool badKnownGood) {
+    const auto expected = parse(enabled).stamp;
+    auto completed = initial;
+    assert(promoteKnownGood(completed, expected) == Code::Promoted);
+    const auto operations = completed.calls, mutations = completed.mutations;
+    const auto preserved = [&](FakeStorage& state) {
+        assert(!state.openHandles && state.files.at(FileId::Active) == enabled);
+        if (hasPrevious) assert(state.files.at(FileId::Previous) == initial.files.at(FileId::Previous));
+        if (badKnownGood) {
+            const auto& bytes = initial.files.at(FileId::KnownGood);
+            bool found = state.files.count(FileId::KnownGood) && state.files.at(FileId::KnownGood) == bytes;
+            for (unsigned n = static_cast<unsigned>(FileId::BadKnownGood0); n <= static_cast<unsigned>(FileId::BadKnownGood3); ++n) {
+                const auto file = static_cast<FileId>(n);
+                found |= state.files.count(file) && state.files.at(file) == bytes;
+            }
+            assert(found); // Invalid evidence survives even if promotion stops.
+        }
+        state.restart();
+        state.files[FileId::Active] = "invalid on next boot";
+        const auto loaded = loadConfiguration(state);
+        assert(!optionalFeaturesEnabled(loaded, true) && !state.openHandles);
+        if (hasPrevious) assert(loaded.source == ConfigSource::KnownGood || loaded.source == ConfigSource::Previous);
+        else if (loaded.source == ConfigSource::Defaults) assert(!loaded.config.enabled && !loaded.config.diagnostics);
+        else assert(loaded.source == ConfigSource::KnownGood && loaded.config.enabled);
+    };
+    for (unsigned n = 1; n <= operations; ++n) {
+        auto failed = initial;
+        failed.failAt = n;
+        assert(promoteKnownGood(failed, expected) != Code::Promoted);
+        preserved(failed);
+    }
+    for (unsigned n = 1; n <= mutations; ++n) {
+        auto interrupted = initial;
+        interrupted.cutAfter = n;
+        assert(promoteKnownGood(interrupted, expected) != Code::Promoted);
+        preserved(interrupted);
+    }
+    std::cout << "PASS " << name << ": " << operations << " operation failures, " << mutations << " interruption boundaries\n";
+}
 int main() {
     auto normal = fixture();
     const auto expected = parse(enabled).stamp;
@@ -63,11 +102,14 @@ int main() {
     assert(promoteKnownGood(changed, expected) == Code::Changed && !changed.mutations);
     FakeStorage first;
     first.files[FileId::Active] = enabled;
+    promotionBoundaryCases("first known-good copy", first, false, false);
     assert(promoteKnownGood(first, expected) == Code::Promoted);
     auto onlyPrevious = fixture(); onlyPrevious.files.erase(FileId::KnownGood);
+    promotionBoundaryCases("predecessor-only recovery", onlyPrevious, true, false);
     assert(promoteKnownGood(onlyPrevious, expected) == Code::Promoted);
     assert(onlyPrevious.files[FileId::Previous] == disabled + "# older\n");
     auto badLkg = fixture(); badLkg.files[FileId::KnownGood] = "invalid";
+    promotionBoundaryCases("invalid known-good quarantine", badLkg, true, true);
     assert(promoteKnownGood(badLkg, expected) == Code::Promoted && badLkg.files[FileId::BadKnownGood0] == "invalid");
     for (unsigned i = 0; i < 4; ++i) badLkg.files[static_cast<FileId>(static_cast<unsigned>(FileId::BadKnownGood0) + i)] = "evidence";
     badLkg.files[FileId::KnownGood] = "bad again";
