@@ -3,6 +3,9 @@
 set -euo pipefail
 BASE=97b22fe2cc282cee5bae7c12e0db54c1aa111dfb
 DLDI=4e3fba1f4a96dc0ee53b97cecbfe497633b7dfd5
+UPSTREAM=https://github.com/DS-Homebrew/TWiLightMenu.git
+VERSION_TAG=v27.24.1
+VERSION_TAG_SHA=68d04c1a621a8d330e7233efcfcb93c94b30a3a6
 BASE_IMAGE=devkitpro/devkitarm:20241104
 BASE_DIGEST=sha256:a998edf6b06416b5c053edbcd879abfa22b1b88e9cd3f267f5c4ee9fec71a93a
 MANUAL_SHA=72b75b98600ce78c3995803f1aa87b9a94384778d7bd6b5d20520ff62f826614
@@ -16,7 +19,6 @@ done
 [[ -z $(git -C "$repo" status --porcelain) ]] || { echo 'Commit or preserve working changes before running clean build checks.' >&2; exit 2; }
 head=$(git -C "$repo" rev-parse HEAD)
 git -C "$repo" merge-base --is-ancestor "$BASE" "$head"
-git -C "$repo" describe --tags --abbrev=0 "$BASE" >/dev/null || { echo "Fetch reachable tags/history for baseline version reporting." >&2; exit 2; }
 docker info >/dev/null
 parent=${XLPLUS_OUTPUT_PARENT:-"$HOME/Projects/DSiXLPlus-Phase1-Builds"}
 parent=$(realpath -m -- "$parent")
@@ -87,6 +89,20 @@ build_variant() {
     git clone --no-hardlinks --no-checkout "$repo" "$source" > "$directory/evidence/clone.log" 2>&1
     git -C "$source" checkout --detach "$revision" >> "$directory/evidence/clone.log" 2>&1
     git -C "$source" remote set-url origin https://github.com/tea-baggins-117/DSi-XL-Plus.git
+    # Forks need not publish upstream tags. Restore only build-copy metadata;
+    # never change the development checkout, revision or archived baseline.
+    stage="$name-version-history"
+    if [[ $(git -C "$source" rev-parse --is-shallow-repository) == true ]]; then
+        git -C "$source" fetch --no-tags --unshallow "$UPSTREAM" "$BASE" > "$directory/evidence/version-history.log" 2>&1
+    fi
+    git -C "$source" fetch --no-tags "$UPSTREAM" \
+        "+refs/tags/$VERSION_TAG:refs/tags/$VERSION_TAG" >> "$directory/evidence/version-history.log" 2>&1
+    [[ $(git -C "$source" rev-parse "refs/tags/$VERSION_TAG") == "$VERSION_TAG_SHA" ]]
+    git -C "$source" merge-base --is-ancestor "$VERSION_TAG_SHA" "$BASE"
+    [[ $(git -C "$source" describe --tags --abbrev=0 "$BASE") == "$VERSION_TAG" ]]
+    git -C "$source" describe --tags --abbrev=0 HEAD > "$directory/evidence/upstream-version.txt"
+    git -C "$source" rev-parse "refs/tags/$VERSION_TAG" > "$directory/evidence/version-tag.txt"
+    [[ $(git -C "$source" rev-parse HEAD) == "$revision" ]]
     git -C "$source" submodule update --init --recursive > "$directory/evidence/submodule.log" 2>&1
     [[ $(git -C "$source/booter_fc/flashcart_specifics/DLDI" rev-parse HEAD) == "$DLDI" ]]
     [[ -z $(git -C "$source" status --porcelain) ]]
