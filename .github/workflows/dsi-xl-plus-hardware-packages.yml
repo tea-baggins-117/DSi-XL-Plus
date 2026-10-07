@@ -1,0 +1,50 @@
+name: DSi XL+ hardware test packages
+
+on:
+  push:
+    branches: ["dsi-xl-plus/main"]
+    paths:
+      - '.github/workflows/dsi-xl-plus-hardware-packages.yml'
+      - 'dsi-xl-plus/tools/package-hardware-tests.py'
+      - 'dsi-xl-plus/docs/HARDWARE-TESTING.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package-accepted-builds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download the three accepted build archives (no rebuild)
+        uses: actions/download-artifact@v7
+        with:
+          artifact-ids: '11458795776,11458761146,11458227244'
+          run-id: 37564486683
+          github-token: ${{ github.token }}
+          path: accepted-inputs
+      - name: Verify hashes and create DSi-only launcher overlays
+        run: python3 dsi-xl-plus/tools/package-hardware-tests.py --inputs accepted-inputs --output hardware-test-output
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hardware-test-baseline
+          path: hardware-test-output/01-PHASE0-BASELINE-97b22fe-SD.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hardware-test-foundation-off
+          path: hardware-test-output/02-PHASE1-FOUNDATION-OFF-2d72ffc-SD.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hardware-test-foundation-on
+          path: hardware-test-output/03-PHASE1-FOUNDATION-ON-2d72ffc-SD.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hardware-test-instructions-and-manifests
+          path: hardware-test-output/instructions-and-manifests/*
+          if-no-files-found: error
