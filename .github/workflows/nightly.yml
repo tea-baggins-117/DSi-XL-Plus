@@ -31,6 +31,9 @@ jobs:
       - name: Setup environment
         run: |
           git config --global safe.directory '*'
+          # Forks may not publish upstream version tags.
+          git fetch --no-tags https://github.com/DS-Homebrew/TWiLightMenu.git '+refs/tags/v27.24.1:refs/tags/v27.24.1'
+          test "$(git rev-parse refs/tags/v27.24.1)" = 68d04c1a621a8d330e7233efcfcb93c94b30a3a6
       - name: Get manual pages
         run: |
           cd manual/nitrofiles

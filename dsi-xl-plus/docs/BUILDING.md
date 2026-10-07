@@ -23,4 +23,6 @@ Upstream version generation requires reachable tags. The fork may have no tags, 
 
 Evidence includes commit/submodule identity, source diff, image metadata, toolchain packages, full logs, build exit status, package hashes/inventory, three ELF size/symbol reports and linker maps. Each variant preserves its compiled package separately. CI additionally compares output inventories, warnings and ELF sizes; inspect new warnings before accepting a build.
 
+The original nightly remains a foundation-off convenience build. Its environment setup also fetches/verifies the recorded tag so a tagless fork does not produce an incomplete upstream version string. Use the foundation workflow for baseline/off/on acceptance and comparison evidence.
+
 `dsi-xl-plus/build/xlplus.mk` must remain tracked even though upstream ignores directories named `build`. It is source, not generated output. No new Dockerfile is required.

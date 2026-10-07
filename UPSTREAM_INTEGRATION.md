@@ -22,7 +22,7 @@ The build helper requires the same base digest and manual input. It uses the ori
 | File | Change |
 | --- | --- |
 | `README.md` | Fork identity and docs links; upstream content retained. |
-| `.github/workflows/nightly.yml` | Add `dsi-xl-plus/**` to both branch lists. |
+| `.github/workflows/nightly.yml` | Add `dsi-xl-plus/**` to both branch lists; fetch and verify the recorded upstream version tag in the CI checkout. |
 | `title/arm9/Makefile` | Include opt-in foundation build fragment. |
 | `romsel_dsimenutheme/arm9/Makefile` | Same. |
 | `settings/arm9/Makefile` | Same, with settings-only adapter source. |
@@ -48,5 +48,6 @@ All new runtime code lives under `dsi-xl-plus/`. The additional foundation workf
 - Config maintenance is limited by execution mode (`isDSiMode`, launcher running from available SD). This does not identify DSi XL versus every other compatible model; all untested hardware routes remain unverified.
 - The session has no Docker daemon. The same pinned Docker configuration is used by the new GitHub workflow and the host helper. Build acceptance must be established from their actual exit codes, not host tests alone.
 - The existing upstream `build/` ignore rule also matches `dsi-xl-plus/build/xlplus.mk`; track that one approved file explicitly rather than changing a ninth upstream file.
+- The fork has no upstream version tags. Both build routes now restore and verify `v27.24.1` as build-checkout metadata, keeping upstream version generation intact. The original plan only called for the nightly branch filter; the three setup lines are an environment correction within the same approved file.
 
 See [testing](dsi-xl-plus/docs/TESTING.md) for acceptance criteria and evidence interpretation.
